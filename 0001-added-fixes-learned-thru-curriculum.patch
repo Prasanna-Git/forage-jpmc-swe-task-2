@@ -1,0 +1,96 @@
+From 3c2f00b61a95bab7538934998b88d814a4d8e518 Mon Sep 17 00:00:00 2001
+From: Prasanna Kumar <37179076+Prasanna-Git@users.noreply.github.com>
+Date: Tue, 4 Jul 2023 11:48:17 +0000
+Subject: [PATCH] added fixes learned thru curriculum
+
+---
+ src/App.tsx   | 18 ++++++++++++++++--
+ src/Graph.tsx | 12 ++++++++++--
+ 2 files changed, 26 insertions(+), 4 deletions(-)
+
+diff --git a/src/App.tsx b/src/App.tsx
+index 0728518..7bfc681 100755
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -8,6 +8,7 @@ import './App.css';
+  */
+ interface IState {
+   data: ServerRespond[],
++  showGraph:boolean//added boolean for graph
+ }
+ 
+ /**
+@@ -22,6 +23,7 @@ class App extends Component<{}, IState> {
+       // data saves the server responds.
+       // We use this state to parse data down to the child element (Graph) as element property
+       data: [],
++      showGraph:false
+     };
+   }
+ 
+@@ -29,18 +31,30 @@ class App extends Component<{}, IState> {
+    * Render Graph react component with state.data parse as property data
+    */
+   renderGraph() {
+-    return (<Graph data={this.state.data}/>)
++    if(this.state.showGraph)
++      return (<Graph data={this.state.data}/>)
+   }
+ 
+   /**
+    * Get new data from server and update the state with the new data
+    */
++  //added interval/continous streaming
+   getDataFromServer() {
++    let x=0;
++    const interval=setInterval(()=>{
+     DataStreamer.getData((serverResponds: ServerRespond[]) => {
+       // Update the state by creating a new array of data that consists of
+       // Previous data in the state and the new data from server
+-      this.setState({ data: [...this.state.data, ...serverResponds] });
++      this.setState({
++        data:serverResponds,
++        showGraph:true
++      });
+     });
++    x++;
++    if(x>1000){
++      clearInterval(interval);
++    }
++  },100)
+   }
+ 
+   /**
+diff --git a/src/Graph.tsx b/src/Graph.tsx
+index 3b2a7da..2395f49 100644
+--- a/src/Graph.tsx
++++ b/src/Graph.tsx
+@@ -14,7 +14,8 @@ interface IProps {
+  * Perspective library adds load to HTMLElement prototype.
+  * This interface acts as a wrapper for Typescript compiler.
+  */
+-interface PerspectiveViewerElement {
++//extended HTMLElement
++interface PerspectiveViewerElement extends HTMLElement {
+   load: (table: Table) => void,
+ }
+ 
+@@ -32,7 +33,14 @@ class Graph extends Component<IProps, {}> {
+ 
+   componentDidMount() {
+     // Get element to attach the table from the DOM.
+-    const elem: PerspectiveViewerElement = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
++    //changed direct assignment to elem 
++    const elem = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
++    //setting required elem attributes for graph
++    elem.setAttribute('view','y_line')
++    elem.setAttribute('column-pivots','["stocks]')
++    elem.setAttribute('row-pivots','["timestamp"]')
++    elem.setAttribute('columns','["top_ask_price"]')
++    elem.setAttribute('aggregates',`{"stock":"distinct count","top_ask_price":"avg","top_bid_price":"avg","timestamp":"distinct count"}`)
+ 
+     const schema = {
+       stock: 'string',
+-- 
+2.41.0
+
